@@ -207,7 +207,7 @@ router.post("/oneTwoOneConnectionReq", async function(req,res,next){
           meetingLink : meetingLink,
         })
         if(sendRequest != null){
-          // sendRequest.save();
+          sendRequest.save();
           let receiverData = await directoryData.find({ _id: requestReceiver })
                                                 .select("fcmToken name mobile email");
 
