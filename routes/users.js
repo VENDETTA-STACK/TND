@@ -198,74 +198,169 @@ router.post("/oneTwoOneConnectionReq", async function(req,res,next){
         meetingLink 
     } = req.body;
     try {
-        let sendRequest = await new connectionSchema({
-          requestSender : requestSender , 
-          requestReceiver : requestReceiver, 
-          requestStatus : requestStatus, 
-          notification : notificationData, 
-          meetingType : meetingType, 
-          meetingLink : meetingLink,
+        let existRecord = await connectionSchema.find({
+          $and: [
+            {requestSender : requestSender} , 
+            {requestReceiver : requestReceiver} ,
+          ]
         })
-        if(sendRequest != null){
-          sendRequest.save();
-          let receiverData = await directoryData.find({ _id: requestReceiver })
-                                                .select("fcmToken name mobile email");
-
-          console.log(receiverData[0].fcmToken);
-          let notificationTitleIs = notificationData.notificationTitle;
-          let notificationBodyIs = notificationData.notificationBody;
-          console.log(notificationTitleIs);
-          console.log(notificationBodyIs);
-          let receiverFcmToken = receiverData[0].fcmToken;
-          var sendReqNotiToReceiver = {
-            "to":receiverFcmToken,
-            "priority":"high",
-            "content_available":true,
-            "data": {
-                "sound": "surprise.mp3",
-                "click_action": "FLUTTER_NOTIFICATION_CLICK"
-            },
-            "notification":{
-                        "body": notificationBodyIs,
-                        "title":notificationTitleIs,
-                        "badge":1
-                    }
-          };
-      
-          var options2 = {
-              'method': 'POST',
-              'url': 'https://fcm.googleapis.com/fcm/send',
-              'headers': {
-                  'authorization': 'key=AAAA6iLVZks:APA91bGUpLM6fb7if-uzgCnl4i-xR6734jhkZ3C-u-7PKjFYu0SGsy_cRIDLWGqULXDTt4kR6-etX40Fv2yfrXDDa87V-fY7QsFDIn5lNT-rf3LDpIGmSkmA-Aeffz1OYix-NXMVxabz',
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(sendReqNotiToReceiver)
-          };
-      
-          request(options2, function (error, response , body) {
-            console.log("--------------------Sender--------------------");
-            let myJsonBody = JSON.stringify(body);
-            //console.log(myJsonBody);
-            //myJsonBody[51] USED TO ACCESS RESPONSE DATA SUCCESS FIELD
-            // console.log(myJsonBody);
-            // if(myJsonBody[51]==0){
-            //     console.log("Send Text notification of new order..........!!!");
-            //     sendMessages(sendermobile[0].mobile,newOrderNotification);
-            // }
-            if (error) {
-                console.log(error.message);
-            } else {
-                console.log("Sending Notification Testing....!!!");
-                console.log("helloo........" + response.body);
-                // if(response.body.success=="1"){
-                //     console.log("Send Text notification of new order..........!!!");
-                //     sendMessages(sendermobile[0].mobile,newOrderNotification);
-                // }
-            }
-          });
-          res.status(200).json({ IsSuccess: true , Data: [sendRequest] , Message: "Connection Requested" });
+        if(existRecord.length == 1){
+            res.status(200).json({ IsSuccess: true , Data: existRecord , Message: "Connection Request Already Sent" });
         }else{
-          res.status(200).json({ IsSuccess: true , Data: [] , Message: "Connection Not Send" });
+          let sendRequest = await new connectionSchema({
+            requestSender : requestSender , 
+            requestReceiver : requestReceiver, 
+            requestStatus : requestStatus, 
+            notification : notificationData, 
+            meetingType : meetingType, 
+            meetingLink : meetingLink,
+          })
+      
+          if(sendRequest != null){
+            sendRequest.save();
+            let receiverData = await directoryData.find({ _id: requestReceiver })
+                                                  .select("fcmToken name mobile email");
+  
+            console.log(receiverData[0].fcmToken);
+            let notificationTitleIs = notificationData.notificationTitle;
+            let notificationBodyIs = notificationData.notificationBody;
+            console.log(notificationTitleIs);
+            console.log(notificationBodyIs);
+            let receiverFcmToken = receiverData[0].fcmToken;
+            var sendReqNotiToReceiver = {
+              "to":receiverFcmToken,
+              "priority":"high",
+              "content_available":true,
+              "data": {
+                  "sound": "surprise.mp3",
+                  "click_action": "FLUTTER_NOTIFICATION_CLICK"
+              },
+              "notification":{
+                          "body": notificationBodyIs,
+                          "title":notificationTitleIs,
+                          "badge":1
+                      }
+            };
+        
+            var options2 = {
+                'method': 'POST',
+                'url': 'https://fcm.googleapis.com/fcm/send',
+                'headers': {
+                    'authorization': 'key=AAAA6iLVZks:APA91bGUpLM6fb7if-uzgCnl4i-xR6734jhkZ3C-u-7PKjFYu0SGsy_cRIDLWGqULXDTt4kR6-etX40Fv2yfrXDDa87V-fY7QsFDIn5lNT-rf3LDpIGmSkmA-Aeffz1OYix-NXMVxabz',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sendReqNotiToReceiver)
+            };
+        
+            request(options2, function (error, response , body) {
+              console.log("--------------------Sender--------------------");
+              let myJsonBody = JSON.stringify(body);
+              //console.log(myJsonBody);
+              //myJsonBody[51] USED TO ACCESS RESPONSE DATA SUCCESS FIELD
+              // console.log(myJsonBody);
+              // if(myJsonBody[51]==0){
+              //     console.log("Send Text notification of new order..........!!!");
+              //     sendMessages(sendermobile[0].mobile,newOrderNotification);
+              // }
+              if (error) {
+                  console.log(error.message);
+              } else {
+                  console.log("Sending Notification Testing....!!!");
+                  console.log("helloo........" + response.body);
+                  // if(response.body.success=="1"){
+                  //     console.log("Send Text notification of new order..........!!!");
+                  //     sendMessages(sendermobile[0].mobile,newOrderNotification);
+                  // }
+              }
+            });
+            res.status(200).json({ IsSuccess: true , Data: [sendRequest] , Message: "Connection Requested" });
+          }else{
+            res.status(200).json({ IsSuccess: true , Data: [] , Message: "Connection Not Send" });
+          }
+        }
+        
+    } catch (error) {
+        res.status(500).json({ IsSuccess: false , Message: error.message });
+    }
+});
+
+router.post("/updateConnectionReq", async function(req,res,next){
+    const {
+        requestSender , 
+        requestReceiver , 
+        requestStatus, 
+        notificationData,
+    } = req.body; 
+    try {
+        let existRecord = await connectionSchema.find({
+          $and: [
+            {requestSender : requestSender} , 
+            {requestReceiver : requestReceiver} ,
+          ]
+        });
+        if(existRecord.length == 1){
+          let updateIs = {
+            requestStatus: requestStatus
+          }
+          let updateConnection = await connectionSchema.findByIdAndUpdate(existRecord[0]._id,updateIs);
+          let receiverData = await directoryData.find({ _id: requestReceiver })
+                                                  .select("fcmToken name mobile email");
+  
+            console.log(receiverData[0].fcmToken);
+            let notificationTitleIs = notificationData.notificationTitle;
+            let notificationBodyIs = notificationData.notificationBody;
+            console.log(notificationTitleIs);
+            console.log(notificationBodyIs);
+            let receiverFcmToken = receiverData[0].fcmToken;
+            var sendReqNotiToReceiver = {
+              "to":receiverFcmToken,
+              "priority":"high",
+              "content_available":true,
+              "data": {
+                  "sound": "surprise.mp3",
+                  "click_action": "FLUTTER_NOTIFICATION_CLICK"
+              },
+              "notification":{
+                          "body": notificationBodyIs,
+                          "title":notificationTitleIs,
+                          "badge":1
+                      }
+            };
+        
+            var options2 = {
+                'method': 'POST',
+                'url': 'https://fcm.googleapis.com/fcm/send',
+                'headers': {
+                    'authorization': 'key=AAAA6iLVZks:APA91bGUpLM6fb7if-uzgCnl4i-xR6734jhkZ3C-u-7PKjFYu0SGsy_cRIDLWGqULXDTt4kR6-etX40Fv2yfrXDDa87V-fY7QsFDIn5lNT-rf3LDpIGmSkmA-Aeffz1OYix-NXMVxabz',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sendReqNotiToReceiver)
+            };
+        
+            request(options2, function (error, response , body) {
+              console.log("--------------------Sender--------------------");
+              let myJsonBody = JSON.stringify(body);
+              //console.log(myJsonBody);
+              //myJsonBody[51] USED TO ACCESS RESPONSE DATA SUCCESS FIELD
+              // console.log(myJsonBody);
+              // if(myJsonBody[51]==0){
+              //     console.log("Send Text notification of new order..........!!!");
+              //     sendMessages(sendermobile[0].mobile,newOrderNotification);
+              // }
+              if (error) {
+                  console.log(error.message);
+              } else {
+                  console.log("Sending Notification Testing....!!!");
+                  console.log("helloo........" + response.body);
+                  // if(response.body.success=="1"){
+                  //     console.log("Send Text notification of new order..........!!!");
+                  //     sendMessages(sendermobile[0].mobile,newOrderNotification);
+                  // }
+              }
+            });
+          res.status(200).json({ IsSuccess: true , Data: 1 , Message: "Connection Updated" });
+        }else{
+          res.status(200).json({ IsSuccess: true , Data: [] , Message: "No Connection Data Exist" });
         }
     } catch (error) {
         res.status(500).json({ IsSuccess: false , Message: error.message });
